@@ -3,7 +3,7 @@ OUTPUT := .output
 CLANG ?= clang
 LLVM_STRIP ?= llvm-strip
 BPFTOOL ?= bpftool
-LIBBPF_SRC := $(abspath ../libbpf/src)
+LIBBPF_SRC := $(abspath ./libbpf/src)
 LIBBPF_OBJ := $(abspath $(OUTPUT)/libbpf.a)
 
 # Use our own libbpf API headers and Linux UAPI headers distributed with
@@ -62,7 +62,9 @@ $(LIBBPF_OBJ): $(wildcard $(LIBBPF_SRC)/*.[ch] $(LIBBPF_SRC)/Makefile) | $(OUTPU
 $(OUTPUT)/%.bpf.o: bpf/%.bpf.c $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BPF,$@)
 	$(Q)$(CLANG) -g -O2 -target bpf -D__TARGET_ARCH_$(ARCH) $(INCLUDES) $(CLANG_BPF_SYS_INCLUDES) -c $(filter %.c,$^) -o $@
-	$(Q)$(LLVM_STRIP) $@ # strip everything since we're not using BTF
+	$(Q)
+
+### $(LLVM_STRIP) $@ # strip everything since we're not using BTF
 
 # delete failed targets
 .DELETE_ON_ERROR:
