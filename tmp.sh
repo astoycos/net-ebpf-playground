@@ -1,6 +1,6 @@
 sudo bpftool prog -d load ./.output/socket_proxy.bpf.o /sys/fs/bpf/socket_proxy type sockops
 
-sudo bpftool cgroup attach "/sys/fs/cgroup" sock_ops pinned "/sys/fs/bpf/socket_proxy"
+sudo bpftool cgroup attach "/sys/fs/cgroup" sockops pinned "/sys/fs/bpf/socket_proxy"
 
 sudo bpftool map pin id 370 "/sys/fs/bpf/svc_map"
 
@@ -9,6 +9,10 @@ sudo bpftool map pin id 371 "/sys/fs/bpf/sctp_socket_map"
 sudo bpftool prog load ./.output/socket_proxy_msg.bpf.o "/sys/fs/bpf/socket_proxy_msg" map name svc_map pinned "/sys/fs/bpf/svc_map" map name sctp_socket_map pinned "/sys/fs/bpf/sctp_socket_map"
 
 sudo bpftool cgroup detach "/sys/fs/cgroup" sock_ops id 1273
+
+
+sudo bpftool prog load ./.output/sk_lookup.bpf.o /sys/fs/bpf/sk_lookup type sk_lookup
+
 
 /sys/kernel/debug/tracing/trace_pipe
 
@@ -65,3 +69,16 @@ getsockopt(3, SOL_SOCKET, SO_ERROR, [0], [4]) = 0
 TCP 
 socket(AF_INET, SOCK_STREAM, IPPROTO_IP) = 5
 connect(5, {sa_family=AF_INET, sin_port=htons(80), sin_addr=inet_addr("169.1.1.1")}, 16) = -1 EINPROGRESS (Operation now in progress)
+
+
+apk add --no-cache nmap-ncat
+
+while true; do { echo -e 'HTTP/1.1 200 OK\r\n\r\nHello World'; } | nc -v -l 80; done
+
+
+
+sudo bpftool prog load ./.output/sk_lookup.bpf.o /sys/fs/bpf/sk_lookup type sk_lookup
+
+clang -I/usr/include -I/home/astoycos/go/src/github.com/astoycos/net-ebpf-playground/libbpf -g -O2 -Wall -Wextra /home/astoycos/go/src/github.com/astoycos/net-ebpf-playground/userspace/attach-sklookup.c -o attach-sklookup
+
+sudo ./attach-sklookup /sys/fs/bpf/sk_lookup /sys/fs/bpf/sk_lookup_link

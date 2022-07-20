@@ -73,7 +73,8 @@ create_pod() {
 		rm -rf alpine
 	fi
 	if [ ! -f .output/resolv.conf ]; then
-		echo "nameserver 1.1.1.1" > .output/resolv.conf
+		echo "nameserver 10.10.160.1" > .output/resolv.conf
+
 	fi
 	bundle_dir="./containers/${pod}"
 	mkdir -p "${bundle_dir}"
