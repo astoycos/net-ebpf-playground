@@ -79,6 +79,32 @@ while true; do { echo -e 'HTTP/1.1 200 OK\r\n\r\nHello World'; } | nc -v -l 80; 
 
 sudo bpftool prog load ./.output/sk_lookup.bpf.o /sys/fs/bpf/sk_lookup type sk_lookup
 
-clang -I/usr/include -I/home/astoycos/go/src/github.com/astoycos/net-ebpf-playground/libbpf -g -O2 -Wall -Wextra /home/astoycos/go/src/github.com/astoycos/net-ebpf-playground/userspace/attach-sklookup.c -o attach-sklookup
+clang -I/usr/include -I/home/astoycos/go/src/github.com/redhat-et/net-ebpf-playground/libbpf -g -O2 -Wall -Wextra /home/astoycos/go/src/github.com/redhat-et/net-ebpf-playground/userspace/attach-sklookup.c -o attach-sklookup
+
+sudo ./attach-sklookup /sys/fs/bpf/sk_lookup /sys/fs/bpf/sk_lookup_link
+
+sudo bpftool prog -d load ./.output/sock_ops.bpf.o /sys/fs/bpf/load_sock type sockops
+
+sudo bpftool cgroup attach "/sys/fs/cgroup/unified" sockops pinned "/sys/fs/bpf/load_sock"
+
+
+sudo bpftool cgroup attach "/sys/fs/cgroup" sock_ops pinned "/sys/fs/bpf/socket_proxy"
+
+sudo bpftool map pin id 370 "/sys/fs/bpf/socket_map"
+
+sudo bpftool map pin id 371 "/sys/fs/bpf/sctp_socket_map"
+
+sudo bpftool cgroup detach "/sys/fs/cgroup/unified" sock_ops name load_sock
+
+python3 -m http.server
+
+sudo nc -4kle /bin/cat 127.0.0.1 80
+python3 -m http.server
+
+{ echo 'Hip'; sleep 0.1; } | nc -4 127.0.0.1 80
+
+clang -I/usr/include -I/home/astoycos/go/src/github.com/redhat-et/net-ebpf-playground/libbpf -g -O2 -Wall -Wextra /home/astoycos/go/src/github.com/redhat-et/net-ebpf-playground/userspace/attach-sklookup.c -o attach-sklookup
+
+sudo bpftool prog load ./.output/sk_lookup.bpf.o /sys/fs/bpf/sk_lookup map name socket_map pinned "/sys/fs/bpf/socket_map"
 
 sudo ./attach-sklookup /sys/fs/bpf/sk_lookup /sys/fs/bpf/sk_lookup_link

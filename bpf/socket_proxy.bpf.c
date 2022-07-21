@@ -5,7 +5,7 @@
 
 char _license[] SEC("license") = "GPL";
 
-//SEC("sockops")
+// SEC("sockops")
 // int bpf_sockops_sctp_load(struct bpf_sock_ops *skops)
 // {   
 //     // Only Care about socket create events

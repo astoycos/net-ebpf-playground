@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 		error(EXIT_FAILURE, errno, "bpf(OBJ_GET)");
 
 	/* 2. Get an FD for this process network namespace (netns) */
-	netns_fd = open("/proc/3821431/ns/net", O_RDONLY | O_CLOEXEC);
+	netns_fd = open("/proc/self/ns/net", O_RDONLY | O_CLOEXEC);
 	if (netns_fd == -1)
 		error(EXIT_FAILURE, errno, "open");
 
