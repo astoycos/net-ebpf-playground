@@ -85,12 +85,12 @@ sudo ./attach-sklookup /sys/fs/bpf/sk_lookup /sys/fs/bpf/sk_lookup_link
 
 sudo bpftool prog -d load ./.output/sock_ops.bpf.o /sys/fs/bpf/load_sock type sockops
 
-sudo bpftool cgroup attach "/sys/fs/cgroup/unified" sockops pinned "/sys/fs/bpf/load_sock"
+sudo bpftool cgroup attach "/sys/fs/cgroup" sock_ops pinned "/sys/fs/bpf/load_sock"
 
 
 sudo bpftool cgroup attach "/sys/fs/cgroup" sock_ops pinned "/sys/fs/bpf/socket_proxy"
 
-sudo bpftool map pin id 370 "/sys/fs/bpf/socket_map"
+sudo bpftool map pin name socket_map "/sys/fs/bpf/socket_map"
 
 sudo bpftool map pin id 371 "/sys/fs/bpf/sctp_socket_map"
 
@@ -108,3 +108,24 @@ clang -I/usr/include -I/home/astoycos/go/src/github.com/redhat-et/net-ebpf-playg
 sudo bpftool prog load ./.output/sk_lookup.bpf.o /sys/fs/bpf/sk_lookup map name socket_map pinned "/sys/fs/bpf/socket_map"
 
 sudo ./attach-sklookup /sys/fs/bpf/sk_lookup /sys/fs/bpf/sk_lookup_link
+
+clang -I/usr/include -I/home/astoycos/go/src/github.com/redhat-et/net-ebpf-playground/libbpf -g -O2 -Wall -Wextra /home/astoycos/go/src/github.com/redhat-et/net-ebpf-playground/userspace/socket_bind.c -o socket_bind
+
+sudo bpftool prog load ./.output/sk_msg.bpf.o "/sys/fs/bpf/sk_msg" map name socket_map pinned "/sys/fs/bpf/socket_map"
+
+sudo bpftool prog attach pinned "/sys/fs/bpf/sk_msg" msg_verdict pinned "/sys/fs/bpf/socket_map"
+
+sudo bpftool prog detach id 10103 msg_verdict pinned "/sys/fs/bpf/socket_map"
+
+sudo bpftool prog loadall ./.output/sk_skb.bpf.o "/sys/fs/bpf/sk_skb" map name socket_map pinned "/sys/fs/bpf/socket_map"
+
+sudo bpftool prog attach name skb_prog1 stream_verdict pinned "/sys/fs/bpf/socket_map"
+
+sudo bpftool prog attach name skb_prog2 stream_parser pinned "/sys/fs/bpf/socket_map"
+
+sudo bpftool prog detach name bpf_prog1 msg_verdict pinned "/sys/fs/bpf/socket_map"
+
+sudo bpftool prog detach name skb_prog2 msg_verdict pinned "/sys/fs/bpf/socket_map"
+
+
+

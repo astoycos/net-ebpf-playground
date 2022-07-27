@@ -21,9 +21,10 @@ struct socket_key {
   __u16 dst_port;
 };
 
+// Explicitly only add src and dst Port
 struct {
   __uint(type, BPF_MAP_TYPE_SOCKHASH); 
   __type(key, struct socket_key);
   __type(value, __u32); 
-  __uint(max_entries, 65536);
+  __uint(max_entries, 2);
 } socket_map SEC(".maps");

@@ -1,0 +1,44 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+#include <linux/bpf.h>
+#include <bpf/bpf_helpers.h>
+#include "maps.bpf.h"
+
+SEC("sk_skb/stream_parser")
+int skb_prog1(struct __sk_buff *skb)
+{
+	return skb->len;
+}
+
+SEC("sk_skb/stream_verdict")
+int skb_prog2(struct __sk_buff *skb)
+{      
+
+    const char err_str[] = "Saw socket skb attempt With IP\
+    : %x and local port: %x remote port %x\n";
+
+    bpf_trace_printk(err_str, sizeof(err_str), skb->local_ip4, skb->local_port, skb->remote_port);
+    
+    // struct svc_vip key = {
+    //     .address = msg->remote_ip4, 
+    //     .dport = msg->remote_port,
+    // };
+
+    // Redirect to only server socket
+    struct socket_key key = { 
+        .src_ip = 0x00000000, 
+        // Port 8000
+        .src_port = bpf_htons(0x1f40),
+        .dst_ip = 0x00000000,
+        .dst_port = 0x0000,
+    };
+
+    int ret = bpf_sk_redirect_hash(skb, &socket_map, &key, 0);
+    if (ret != 0) {
+        const char err_str3[] = "Failed to direct to Socket\
+        ret %d \n";
+
+        bpf_trace_printk(err_str3, sizeof(err_str3), ret);
+    }
+
+    return SK_PASS;
+}
