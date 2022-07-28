@@ -10,7 +10,7 @@ int load_sock(struct bpf_sock_ops *skops)
     const char err_str[] = "Hello, world, from BPF! Saw all Socket With local addr\
     : %x and remote port: %x and local port %x \n";
 
-    if (skops->local_port == 0x1f40 || skops->local_ip4 == bpf_htonl(0xc0a87a5b)) { 
+    if (skops->local_port == 0x1f40 && skops->remote_port == 0) {//|| skops->local_ip4 == bpf_htonl(0xc0a87a5b)) { 
 
         struct socket_key key = {
             .src_ip = skops->local_ip4,//bpf_htonl(0x00000000), 
@@ -20,12 +20,11 @@ int load_sock(struct bpf_sock_ops *skops)
         };
 
         // insert the source socket in the sock_ops_map
-        int ret = bpf_sock_hash_update(skops, &socket_map, &key, BPF_NOEXIST);
+        int ret = bpf_sock_map_update(skops, &socket_map, &key, BPF_NOEXIST);
         if (ret != 0) {
-            const char err_str[] = "Failed to Load Socket\
-            for VIP: %x with port: %x \n";
+            const char err_str[] = "Failed\n";
 
-            bpf_trace_printk(err_str, sizeof(err_str), skops->local_ip4, skops->local_port);
+            bpf_trace_printk(err_str, sizeof(err_str));
         }
 
         bpf_trace_printk(err_str, sizeof(err_str), skops->local_ip4, skops->remote_port, skops->local_port);

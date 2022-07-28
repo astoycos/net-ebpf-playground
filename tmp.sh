@@ -85,16 +85,15 @@ sudo ./attach-sklookup /sys/fs/bpf/sk_lookup /sys/fs/bpf/sk_lookup_link
 
 sudo bpftool prog -d load ./.output/sock_ops.bpf.o /sys/fs/bpf/load_sock type sockops
 
+ 
+
 sudo bpftool cgroup attach "/sys/fs/cgroup" sock_ops pinned "/sys/fs/bpf/load_sock"
-
-
-sudo bpftool cgroup attach "/sys/fs/cgroup" sock_ops pinned "/sys/fs/bpf/socket_proxy"
 
 sudo bpftool map pin name socket_map "/sys/fs/bpf/socket_map"
 
 sudo bpftool map pin id 371 "/sys/fs/bpf/sctp_socket_map"
 
-sudo bpftool cgroup detach "/sys/fs/cgroup/unified" sock_ops name load_sock
+sudo bpftool cgroup detach "/sys/fs/cgroup" sock_ops name load_sock
 
 python3 -m http.server
 
@@ -105,7 +104,7 @@ python3 -m http.server
 
 clang -I/usr/include -I/home/astoycos/go/src/github.com/redhat-et/net-ebpf-playground/libbpf -g -O2 -Wall -Wextra /home/astoycos/go/src/github.com/redhat-et/net-ebpf-playground/userspace/attach-sklookup.c -o attach-sklookup
 
-sudo bpftool prog load ./.output/sk_lookup.bpf.o /sys/fs/bpf/sk_lookup map name socket_map pinned "/sys/fs/bpf/socket_map"
+sudo bpftool prog load ./.output/sk_lookup.bpf.o /sys/fs/bpf/sk_lookup //map name socket_map pinned "/sys/fs/bpf/socket_map"
 
 sudo ./attach-sklookup /sys/fs/bpf/sk_lookup /sys/fs/bpf/sk_lookup_link
 
@@ -115,17 +114,17 @@ sudo bpftool prog load ./.output/sk_msg.bpf.o "/sys/fs/bpf/sk_msg" map name sock
 
 sudo bpftool prog attach pinned "/sys/fs/bpf/sk_msg" msg_verdict pinned "/sys/fs/bpf/socket_map"
 
-sudo bpftool prog detach id 10103 msg_verdict pinned "/sys/fs/bpf/socket_map"
+sudo bpftool prog detach name msg_redirect msg_verdict pinned "/sys/fs/bpf/socket_map"
 
 sudo bpftool prog loadall ./.output/sk_skb.bpf.o "/sys/fs/bpf/sk_skb" map name socket_map pinned "/sys/fs/bpf/socket_map"
 
-sudo bpftool prog attach name skb_prog1 stream_verdict pinned "/sys/fs/bpf/socket_map"
+sudo bpftool prog attach name skb_prog1 stream_parser pinned "/sys/fs/bpf/socket_map"
 
-sudo bpftool prog attach name skb_prog2 stream_parser pinned "/sys/fs/bpf/socket_map"
+sudo bpftool prog attach name skb_prog2 stream_verdict pinned "/sys/fs/bpf/socket_map"
 
-sudo bpftool prog detach name bpf_prog1 msg_verdict pinned "/sys/fs/bpf/socket_map"
+sudo bpftool prog detach name skb_prog1 stream_parser pinned "/sys/fs/bpf/socket_map"
 
-sudo bpftool prog detach name skb_prog2 msg_verdict pinned "/sys/fs/bpf/socket_map"
+sudo bpftool prog detach name skb_prog2 stream_verdict pinned "/sys/fs/bpf/socket_map"
 
 
-
+bpftool map delete name socket_map 0xc0 0xa8 0x7a 0x5b 0xc0 0xa8 0x7a 0x01  0x00 0x16 0x00 0x00
