@@ -128,3 +128,14 @@ sudo bpftool prog detach name skb_prog2 stream_verdict pinned "/sys/fs/bpf/socke
 
 
 bpftool map delete name socket_map 0xc0 0xa8 0x7a 0x5b 0xc0 0xa8 0x7a 0x01  0x00 0x16 0x00 0x00
+
+
+recvfrom(0, 0x7ffcd4b13a00, 8192, 0, 0x7ffcd4b13980, [128]) = -1 ENOTSOCK (Socket operation on non-socket)
+read(0, "HI\n", 8192)                   = 3
+pselect6(4, [3], [3], [0 3], NULL, NULL) = 1 (out [3])
+sendto(3, "HI\n", 3, 0, NULL, 0)        = 3
+pselect6(4, [0 3], [], [0 3], NULL, NULL) = 1 (in [3])
+recvfrom(3, "HI\n", 8192, 0, 0x7ffcd4b13980, [128 => 0]) = 3
+write(1, "HI\n", 3HI
+)                     = 3
+pselect6(4, [0 3], [], [0 3], NULL, NULL

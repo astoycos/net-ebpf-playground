@@ -13,10 +13,10 @@ SEC("sk_skb/stream_verdict")
 int skb_prog2(struct __sk_buff *skb)
 {      
 
-    // const char err_str[] = "Saw socket skb redirect on socket with local IP\
-    // : %x and local port: %x remote port %x\n";
+    const char err_str[] = "Saw socket skb redirect on socket with local IP\
+    : %x and local port: %x remote port %x\n";
 
-    // bpf_trace_printk(err_str, sizeof(err_str), skb->local_ip4, skb->local_port, bpf_ntohs(skb->remote_port));
+    bpf_trace_printk(err_str, sizeof(err_str), skb->local_ip4, skb->local_port, bpf_ntohs(skb->remote_port));
     
     // struct svc_vip key = {
     //     .address = msg->remote_ip4, 
@@ -32,8 +32,8 @@ int skb_prog2(struct __sk_buff *skb)
     //     .dst_ip = 0x00000000,
     //     .dst_port = 0x0000,
     // };
-    __u32 idx = 0;
-    int ret = bpf_sk_redirect_map(skb, &socket_map, idx, 0);
+    __u32 idx = 1;
+    int ret = bpf_sk_redirect_map(skb, &socket_map, idx, BPF_F_INGRESS);
     if (ret == 0) {
         const char err_str3[] = "Failed to direct to Socket\
         ret %d \n";
@@ -41,5 +41,5 @@ int skb_prog2(struct __sk_buff *skb)
         bpf_trace_printk(err_str3, sizeof(err_str3), ret);
     }
 
-    return SK_PASS;
+    return ret;
 }

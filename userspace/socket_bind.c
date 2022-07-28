@@ -130,28 +130,30 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    // //Make new Socket to connect to Server in netns
-    // if ((second_connect_sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    // {
-    //     printf("\n Socket creation error \n");
-    //     return -1;
-    // }
+    //Make new Socket to connect to Server in netns
+    if ((second_connect_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+    {
+        printf("\n Socket creation error \n");
+        return -1;
+    }
 
-    // // Trick server in container netns into being ready for data 
-    // // Connect to dst Socket
-    // address_server_container.sin_family = AF_INET;
-    // address_server_container.sin_port = htons(0x1f40);
-    // inet_pton(AF_INET, "192.168.10.2", &address_server_container.sin_addr.s_addr);
+    // Trick server in container netns into being ready for data 
+    // Connect to dst Socket
+    address_server_container.sin_family = AF_INET;
+    address_server_container.sin_port = htons(0x1f40);
+    address_server_host.sin_addr.s_addr = INADDR_ANY;
 
-    // // Propogate connection to client in netns
-    // int ret = connect(second_connect_sock, (struct sockaddr *)&address_server_container,
-    //                   (socklen_t)addrlen);
-    // if (ret < 0)
-    // {
-    //     perror("connect");
-    //     printf("Couldn't connect to netns server socket: %d\n", ret);
-    //     // return -1;
-    // }
+    //inet_pton(AF_INET, "192.168.10.2", &address_server_container.sin_addr.s_addr);
+
+    // Propogate connection to client in netns
+    int ret = connect(second_connect_sock, (struct sockaddr *)&address_server_container,
+                      (socklen_t)addrlen);
+    if (ret < 0)
+    {
+        perror("connect");
+        printf("Couldn't connect to netns server socket: %d\n", ret);
+        // return -1;
+    }
 
 
     printf("\nListening for incoming connections.....\n");
