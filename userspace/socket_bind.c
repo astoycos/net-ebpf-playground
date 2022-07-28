@@ -141,9 +141,9 @@ int main(int argc, char **argv)
     // Connect to dst Socket
     address_server_container.sin_family = AF_INET;
     address_server_container.sin_port = htons(0x1f40);
-    address_server_host.sin_addr.s_addr = INADDR_ANY;
+    //address_server_host.sin_addr.s_addr = INADDR_ANY;
 
-    //inet_pton(AF_INET, "192.168.10.2", &address_server_container.sin_addr.s_addr);
+    inet_pton(AF_INET, "192.168.10.2", &address_server_container.sin_addr.s_addr);
 
     // Propogate connection to client in netns
     int ret = connect(second_connect_sock, (struct sockaddr *)&address_server_container,
