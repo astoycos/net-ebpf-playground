@@ -139,3 +139,8 @@ recvfrom(3, "HI\n", 8192, 0, 0x7ffcd4b13980, [128 => 0]) = 3
 write(1, "HI\n", 3HI
 )                     = 3
 pselect6(4, [0 3], [], [0 3], NULL, NULL
+
+data coming after fake connect is closed 
+
+sudo ss --tcp state CLOSE-WAIT --kill
+

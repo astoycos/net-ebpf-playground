@@ -18,21 +18,21 @@ int msg_redirect(struct sk_msg_md *msg)
     // };
 
     // Redirect to only server socket
-    struct socket_key key = { 
-        .src_ip = 0x00000000, 
-        // Port 8000
-        .src_port = bpf_htons(0x1f40),
-        .dst_ip = 0x00000000,
-        .dst_port = 0x0000,
-    };
+    // struct socket_key key = { 
+    //     .src_ip = 0x00000000, 
+    //     // Port 8000
+    //     .src_port = bpf_htons(0x1f40),
+    //     .dst_ip = 0x00000000,
+    //     .dst_port = 0x0000,
+    // };
 
-    int ret = bpf_msg_redirect_hash(msg, &socket_map, &key, BPF_F_INGRESS);
-    if (ret != 0) {
-        const char err_str3[] = "Failed to direct to Socket\
-        ret %d \n";
+    // int ret = bpf_msg_redirect_hash(msg, &socket_map, &key, BPF_F_INGRESS);
+    // if (ret != 0) {
+    //     const char err_str3[] = "Failed to direct to Socket\
+    //     ret %d \n";
 
-        bpf_trace_printk(err_str3, sizeof(err_str3), ret);
-    }
+    //     bpf_trace_printk(err_str3, sizeof(err_str3), ret);
+    // }
 
     return SK_PASS;
 }

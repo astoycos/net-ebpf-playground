@@ -50,6 +50,77 @@ struct socket_key
     __u16 dst_port;
 };
 
+/* tcp_info */
+struct xtcp_info {
+	uint8_t tcpi_state;
+	uint8_t tcpi_ca_state;
+	uint8_t tcpi_retransmits;
+	uint8_t tcpi_probes;
+	uint8_t tcpi_backoff;
+	uint8_t tcpi_options;
+	uint8_t tcpi_snd_wscale : 4, tcpi_rcv_wscale : 4;
+	uint8_t tcpi_delivery_rate_app_limited : 1;
+
+	uint32_t tcpi_rto;
+	uint32_t tcpi_ato;
+	uint32_t tcpi_snd_mss;
+	uint32_t tcpi_rcv_mss;
+
+	uint32_t tcpi_unacked;
+	uint32_t tcpi_sacked;
+	uint32_t tcpi_lost;
+	uint32_t tcpi_retrans;
+	uint32_t tcpi_fackets;
+
+	/* Times. */
+	uint32_t tcpi_last_data_sent;
+	uint32_t tcpi_last_ack_sent; /* Not remembered, sorry. */
+	uint32_t tcpi_last_data_recv;
+	uint32_t tcpi_last_ack_recv;
+
+	/* Metrics. */
+	uint32_t tcpi_pmtu;
+	uint32_t tcpi_rcv_ssthresh;
+	uint32_t tcpi_rtt;
+	uint32_t tcpi_rttvar;
+	uint32_t tcpi_snd_ssthresh;
+	uint32_t tcpi_snd_cwnd;
+	uint32_t tcpi_advmss;
+	uint32_t tcpi_reordering;
+
+	uint32_t tcpi_rcv_rtt;
+	uint32_t tcpi_rcv_space;
+
+	uint32_t tcpi_total_retrans;
+
+	uint64_t tcpi_pacing_rate;
+	uint64_t tcpi_max_pacing_rate;
+	uint64_t tcpi_bytes_acked; /* RFC4898 tcpEStatsAppHCThruOctetsAcked */
+	uint64_t tcpi_bytes_received; /* RFC4898
+					 tcpEStatsAppHCThruOctetsReceived */
+	uint32_t tcpi_segs_out;       /* RFC4898 tcpEStatsPerfSegsOut */
+	uint32_t tcpi_segs_in;	/* RFC4898 tcpEStatsPerfSegsIn */
+
+	uint32_t tcpi_notsent_bytes;
+	uint32_t tcpi_min_rtt;
+	uint32_t tcpi_data_segs_in;  /* RFC4898 tcpEStatsDataSegsIn */
+	uint32_t tcpi_data_segs_out; /* RFC4898 tcpEStatsDataSegsOut */
+
+	uint64_t tcpi_delivery_rate;
+
+	uint64_t tcpi_busy_time;    /* Time (usec) busy sending data */
+	uint64_t tcpi_rwnd_limited; /* Time (usec) limited by receive window */
+	uint64_t tcpi_sndbuf_limited; /* Time (usec) limited by send buffer */
+
+	uint32_t tcpi_delivered;
+	uint32_t tcpi_delivered_ce;
+
+	uint64_t tcpi_bytes_sent;    /* RFC4898 tcpEStatsPerfHCDataOctetsOut */
+	uint64_t tcpi_bytes_retrans; /* RFC4898 tcpEStatsPerfOctetsRetrans */
+	uint32_t tcpi_dsack_dups;    /* RFC4898 tcpEStatsStackDSACKDups */
+	uint32_t tcpi_reord_seen;    /* reordering events seen */
+};
+
 int main(int argc, char **argv)
 {
     // pid_t target_pid;
@@ -106,7 +177,7 @@ int main(int argc, char **argv)
 	}
 
 
-    // non-blocking socket
+    // non-blocking socket toggle
     // err = ioctl(server_fd, FIONBIO, (char *)&opt);
     // if (err < 0) {
     //     perror("ioctl s1 failed()");
@@ -130,39 +201,13 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    //Make new Socket to connect to Server in netns
-    if ((second_connect_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
-    {
-        printf("\n Socket creation error \n");
-        return -1;
-    }
-
-    // Trick server in container netns into being ready for data 
-    // Connect to dst Socket
-    address_server_container.sin_family = AF_INET;
-    address_server_container.sin_port = htons(0x1f40);
-    //address_server_host.sin_addr.s_addr = INADDR_ANY;
-
-    inet_pton(AF_INET, "192.168.10.2", &address_server_container.sin_addr.s_addr);
-
-    // Propogate connection to client in netns
-    int ret = connect(second_connect_sock, (struct sockaddr *)&address_server_container,
-                      (socklen_t)addrlen);
-    if (ret < 0)
-    {
-        perror("connect");
-        printf("Couldn't connect to netns server socket: %d\n", ret);
-        // return -1;
-    }
-
-
     printf("\nListening for incoming connections.....\n");
 
     timeout.tv_sec = 10;
 	timeout.tv_usec = 0;
 
-    //while (1)
-    //{   
+    while (1)
+    {   
         struct sockaddr client;
         new_socket = accept(server_fd, (struct sockaddr *)&client,
              (socklen_t*)&addrlen); 
@@ -173,6 +218,32 @@ int main(int argc, char **argv)
             perror("accept");
             exit(EXIT_FAILURE);
         }; 
+
+        //Make new Socket to connect to Server in netns
+        if ((second_connect_sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0)
+        {
+            printf("\n Socket creation error \n");
+            return -1;
+        }
+
+        // Trick server in container netns into being ready for data 
+        // Connect to dst Socket
+        address_server_container.sin_family = AF_INET;
+        address_server_container.sin_port = htons(0x1f40);
+        //address_server_host.sin_addr.s_addr = INADDR_ANY;
+
+        inet_pton(AF_INET, "192.168.10.2", &address_server_container.sin_addr.s_addr);
+
+        // Sudo connection to client in netns
+        int ret = connect(second_connect_sock, (struct sockaddr *)&address_server_container,
+                        (socklen_t)addrlen);
+        if (ret < 0)
+        {
+            perror("connect");
+            printf("Couldn't connect to netns server socket: %d\n", ret);
+            // return -1;
+        }
+
 
         printf("Client connected at IP: %x and port: %i\n", address_server_host.sin_addr, address_server_host.sin_port);
 
@@ -200,23 +271,75 @@ int main(int argc, char **argv)
         // dup_new_socket = dup(new_socket);
 
         value = &new_socket;
-        int idx = 0;
         memset(&attr, 0, sizeof(attr));
         attr.map_fd = map_fd;
-        attr.key = (uint64_t)&idx;
+        attr.key = &key;
         attr.value = (uint64_t)value;
         attr.flags = BPF_ANY;
 
         err = bpf(BPF_MAP_UPDATE_ELEM, &attr, sizeof(attr));
         if (err)
             error(EXIT_FAILURE, errno, "bpf(MAP_UPDATE_ELEM)");
+        
+        printf("\npolling and leaving socket open .....\n");
+
+        /* Get byte count from TCP_INFO */
+        struct xtcp_info ta, ti = {};
+        socklen_t ti_len = sizeof(ti);
+        r = getsockopt(new_socket, IPPROTO_TCP, TCP_INFO, &ta, &ti_len);
+        if (r < 0) {
+            perror("getsockopt(TPC_INFO)");
+        }
+
+        printf("\nrx=%lu .....\n",ta.tcpi_bytes_received);
+
+        while (ta.tcpi_bytes_received == 0 ) { 
+            printf("\nNo data on proxy recv.....\n");
+
+            r = getsockopt(new_socket, IPPROTO_TCP, TCP_INFO, &ta, &ti_len);
+            if (r < 0) {
+                perror("getsockopt(TPC_INFO)");
+            }
+
+            printf("\nrx=%lu .....\n",ta.tcpi_bytes_received);
+
+        } 
+
+        ///Receive the data from the socket which should be intercepted by the sk_skb prog
+        ret = recv(new_socket, client_message, sizeof(client_message),0);
+        if (ret < 0 ){
+            if(errno != EWOULDBLOCK){
+                perror("recv failed()\n");
+                break;
+            }
+        }
+        printf("Msg from client: %s\n", client_message);
+
+        memset(client_message, '\0', sizeof(client_message));
+
+
+        ret = recv(new_socket, client_message, sizeof(client_message),0);
+        if (ret < 0 ){
+            if(errno != EWOULDBLOCK){
+                perror("recv failed()\n");
+                break;
+            }
+        }
+        printf("Msg from server: %s\n", client_message);
+
+    
+        // Data has already gone I think 
 
         /* [*] Wait for the socket to close. Let sockmap do the magic. */
         struct pollfd fds[1] = {
-            {.fd = new_socket, .events = POLLHUP},
+            {.fd = second_connect_sock, .events = POLLHUP},
         };
         poll(fds, 1, -1);
 
+        close(second_connect_sock);
+        close(new_socket);
+
+        printf("\nWaiting for another accept().....\n");
 
         ///Receive the data from the socket which should be intercepted by the sk_skb prog
         // ret = recv(new_socket, client_message, sizeof(client_message),0);
@@ -229,6 +352,6 @@ int main(int argc, char **argv)
 
         // send(new_socket, hello, strlen(hello), 0);
         // printf("Hello message sent\n");
-    //}
+    }
     // close(sock_fd);
 }

@@ -22,11 +22,11 @@ struct socket_key
   __u16 dst_port;
 };
 
-// Explicitly only add src and dst Port
+// Explicitly only add src and dst Port and listening server socket
 struct
 {
-  __uint(type, BPF_MAP_TYPE_SOCKMAP);
-  __type(key, __u32);
+  __uint(type, BPF_MAP_TYPE_SOCKHASH);
+  __type(key, struct socket_key);
   __type(value, __u32);
-  __uint(max_entries, 2);
+  __uint(max_entries, 3);
 } socket_map SEC(".maps");
