@@ -33,6 +33,14 @@ fn try_socket_redirection(ctx: SkMsgContext) -> Result<u32, u32> {
         debug!(&ctx, "not ipv4");
         return Err(sk_action::SK_PASS);
     }
+
+    debug!(
+        &ctx,
+        "sk_msg: local_port {} --> remote_port {}",
+        unsafe { (*ctx.msg).local_port },
+        unsafe {(*ctx.msg).remote_port },
+    );
+
     let remote_ip4 = unsafe { (*ctx.msg).remote_ip4 };
     let local_ip4 = unsafe { (*ctx.msg).local_ip4 };
     let remote_port = unsafe { (*ctx.msg).remote_port >> 16 };
@@ -75,10 +83,10 @@ fn try_sock_ops(ctx: SockOpsContext) -> Result<u32, u32> {
                 debug!(
                     &ctx,
                     "sock ops: remote_ip: {}, local_ip: {}, remote_port: {}, local_port: {}",
-                    remote_ip4,
-                    local_ip4,
-                    remote_port,
-                    local_port
+                    ctx.remote_ip4(),
+                    ctx.local_ip4(),
+                    ctx.remote_port(),
+                    ctx.local_port()
                 );
             }
         }

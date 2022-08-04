@@ -49,15 +49,20 @@ async fn main() -> Result<(), anyhow::Error> {
     let sock_ops: &mut SockOps = bpf.program_mut("sockops").unwrap().try_into()?;
     sock_ops.load()?;
 
-    let pod1_cgroup = std::fs::File::open("/sys/fs/cgroup/system.slice/runc-pod1.scope")
-        .map_err(Error::InvalidCgroup)?;
-    sock_ops.attach(pod1_cgroup)?;
-    let pod2_cgroup = std::fs::File::open("/sys/fs/cgroup/system.slice/runc-pod2.scope")
-        .map_err(Error::InvalidCgroup)?;
-    sock_ops.attach(pod2_cgroup)?;
-    let pod3_cgroup = std::fs::File::open("/sys/fs/cgroup/system.slice/runc-pod3.scope")
+    // let pod1_cgroup = std::fs::File::open("/sys/fs/cgroup/system.slice/runc-pod1.scope")
+    //     .map_err(Error::InvalidCgroup)?;
+    // sock_ops.attach(pod1_cgroup)?;
+    // let pod2_cgroup = std::fs::File::open("/sys/fs/cgroup/system.slice/runc-pod2.scope")
+    //     .map_err(Error::InvalidCgroup)?;
+    // sock_ops.attach(pod2_cgroup)?;
+    // let pod3_cgroup = std::fs::File::open("/sys/fs/cgroup/system.slice/runc-pod3.scope")
+    // .map_err(Error::InvalidCgroup)?;
+    // sock_ops.attach(pod3_cgroup)?;
+
+    let default_cgroup = std::fs::File::open("/sys/fs/cgroup")
     .map_err(Error::InvalidCgroup)?;
-    sock_ops.attach(pod3_cgroup)?;
+    sock_ops.attach(default_cgroup)?;
+
 
     let sock_map = SockHash::<MapRefMut, SockKey>::try_from(bpf.map_mut("TCP_CONNS")?)?;
 
