@@ -1,0 +1,19 @@
+kprobe:fib_table_lookup
+{
+    $flow = (struct flowi4 *)arg1;
+	printf("Master fib lookup: src: %s:%x, dst: %s:%x,\n", ntop($flow->saddr), $flow->uli.ports.sport, ntop($flow->daddr), $flow->uli.ports.dport );
+}
+kretprobe:fib_table_lookup
+{
+    printf("Fib table lookup returned: %d\n", retval);
+}
+
+kretfunc:fib_table_lookup
+{
+    printf("fib prefix result: %s\n", ntop(args->res->prefix));
+    printf("fib type result: %d\n", args->res->type);
+}
+
+kprobe:bpf_sk_lookup_assign{
+    print("Assigning to socket")
+}

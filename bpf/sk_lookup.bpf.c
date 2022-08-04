@@ -5,11 +5,14 @@
 //* Dispatcher program for the echo service */
 SEC("sk_lookup")
 int echo_dispatch(struct bpf_sk_lookup *ctx)
-{
+{   
+    BPF_SOCK_OPS_PASSIVE_ESTABLISHED_CB
+    AF_INET
     const __u32 zero = 0;
 	struct bpf_sock *sk;
 
-    const char err_str[] = "Saw socket lookup attempt With IP: %x and port: %x \n";
+    const char err_str[] = "Saw socket lookup attempt With IP\
+    : %x and port: %x \n";
 
     bpf_trace_printk(err_str, sizeof(err_str), ctx->local_ip4, ctx->local_port);
     
@@ -20,13 +23,15 @@ int echo_dispatch(struct bpf_sk_lookup *ctx)
 
     struct socket_key key = { 
         .src_ip = bpf_htonl(0xc0a80a02), 
+        //.src_ip = bpf_htonl(0x00000000), 
         // Port 8000
         .src_port = bpf_htons(0x1f40),
         .dst_ip = 0x00000000,
         .dst_port = 0x0000,
     };
 
-    const char err_str4[] = "Failed To lookup Socket: %x and port: %x \n";
+    const char err_str4[] = "Failed To lookup Socket\
+        : %x and port: %x \n";
 
     sk = bpf_map_lookup_elem(&socket_map, &key);
     if (!sk) {
@@ -36,7 +41,8 @@ int echo_dispatch(struct bpf_sk_lookup *ctx)
 
     int ret = bpf_sk_assign(ctx, sk, 0);
     if (ret != 0) {
-        const char err_str3[] = "Failed to assign Socket ret %d \n";
+        const char err_str3[] = "Failed to assign Socket\
+        ret %d \n";
 
         bpf_trace_printk(err_str3, sizeof(err_str3), ret);
     }
