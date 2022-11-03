@@ -55,7 +55,6 @@ static __always_inline __u16 udp_checksum(struct iphdr *ip, struct udphdr * udp,
 
     // So we can overflow a bit make this __u32
     __u32 csum_total = 0;
-    __u16 csum;
     __u16 *buf = (void *)udp;
 
     csum_total += (__u16)ip->saddr;
@@ -86,11 +85,7 @@ static __always_inline __u16 udp_checksum(struct iphdr *ip, struct udphdr * udp,
         csum_total += (*(__u8 *)buf);
     }
 
-   // Add any cksum overflow back into __u16
-   csum = (__u16)csum_total + (__u16)(csum_total >> 16);
-
-   csum = ~csum;
-   return csum;
+   return csum_fold_helper(csum_total);
 }
 
 struct backend {

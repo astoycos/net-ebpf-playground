@@ -68,7 +68,7 @@ func main() {
 		Shwaddr: hwaddr2bytes("06:56:87:ec:fd:1f"),
 		// Container-Side Veth Mac
 		Dhwaddr: hwaddr2bytes("86:ad:33:29:ff:5e"),
-		Nocksum: 1,
+		Nocksum: 0,
 		Ifindex: 8,
 	}
 
