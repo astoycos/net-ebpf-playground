@@ -6,6 +6,7 @@
 #include <linux/ip.h>
 #include <linux/udp.h>
 #include <linux/bpf.h>
+#include <linux/pkt_cls.h>
 #include <bpf_helpers.h>
 #include <bpf_endian.h>
 
@@ -50,49 +51,6 @@ static __always_inline __u16 iph_csum(struct iphdr *iph) {
     return csum_fold_helper(csum);
 }
 
-// static __always_inline __u16 udp_checksum(struct iphdr *ip, struct udphdr * udp, void * data_end) {
-//     udp->check = 0;
-
-//     // So we can overflow a bit make this __u32
-//     __u32 csum_total = 0;
-//     __u16 csum;
-//     __u16 *buf = (void *)udp;
-
-//     csum_total += (__u16)ip->saddr;
-//     csum_total += (__u16)(ip->saddr >> 16);
-//     csum_total += (__u16)ip->daddr;
-//     csum_total += (__u16)(ip->daddr >> 16);
-//     csum_total += (__u16)(ip->protocol << 8);
-//     csum_total += udp->len;
-
-//     // The number of nibbles in the UDP header + Payload
-//     unsigned int udp_packet_nibbles = UDP_PAYLOAD_SIZE(udp->len);
-
-//     // Here we only want to iterate through payload 
-//     // NOT trailing bits
-//     for (int i = 0; i <= MAX_UDP_LENGTH; i += 2) {
-//         if (i > udp_packet_nibbles) {
-//             break;
-//         }
-
-//         if ((void *)(buf + 1) > data_end) {
-//             break;
-//         }
-//         csum_total += *buf;
-//         buf++;
-//     }
-
-//     if ((void *)buf + 1 <= data_end) {
-//         csum_total += (*(__u8 *)buf);
-//     }
-
-//    // Add any cksum overflow back into __u16
-//    csum = (__u16)csum_total + (__u16)(csum_total >> 16);
-
-//    csum = ~csum;
-//    return csum;
-// }
-
 struct backend {
     __u32 saddr;
     __u32 daddr;
@@ -129,27 +87,27 @@ int tc_prog_func(struct xdp_md *ctx) {
   struct ethhdr *eth = data;
   if (data + sizeof(struct ethhdr) > data_end) {
     bpf_printk("ABORTED: bad ethhdr!");
-    return XDP_ABORTED;
+    return TC_ACT_OK;
   }
 
   if (bpf_ntohs(eth->h_proto) != ETH_P_IP) {
     bpf_printk("PASS: not IP protocol!");
-    return XDP_PASS;
+    return TC_ACT_OK;
   }
 
   struct iphdr *ip = data + sizeof(struct ethhdr);
   if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) > data_end) {
     bpf_printk("ABORTED: bad iphdr!");
-    return XDP_ABORTED;
+    return TC_ACT_SHOT;
   }
 
   if (ip->protocol != IPPROTO_UDP)
-    return XDP_PASS;
+    return TC_ACT_OK;
 
   struct udphdr *udp = data + sizeof(struct ethhdr) + sizeof(struct iphdr);
   if (data + sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr) > data_end) {
     bpf_printk("ABORTED: bad udphdr!");
-    return XDP_ABORTED;
+    return TC_ACT_SHOT;
   }
 
   bpf_printk("UDP packet received - daddr:%x, port:%d", ip->daddr, bpf_ntohs(udp->dest));
@@ -167,7 +125,7 @@ int tc_prog_func(struct xdp_md *ctx) {
   bk = bpf_map_lookup_elem(&backends, &key);
   if (!bk) {
       bpf_printk("no backends for ip %x:%x", key.vip, key.port);
-      return XDP_PASS;
+      return TC_ACT_OK;
   }
 
   bpf_printk("got UDP traffic, source address:");
@@ -188,30 +146,14 @@ int tc_prog_func(struct xdp_md *ctx) {
     bpf_printk("updated dport to: %d", bk->dport);
   }
 
-//   memcpy(eth->h_source, bk->shwaddr, sizeof(eth->h_source));
-//   bpf_printk("new source hwaddr %x:%x:%x:%x:%x:%x", eth->h_source[0], eth->h_source[1], eth->h_source[2], eth->h_source[3], eth->h_source[4], eth->h_source[5]);
-
-//   memcpy(eth->h_dest, bk->dhwaddr, sizeof(eth->h_dest));
-//   bpf_printk("new dest hwaddr %x:%x:%x:%x:%x:%x", eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
-
   ip->check = iph_csum(ip);
   udp->check = 0;
 
-  if (!bk->nocksum){
-    udp->check = udp_checksum(ip, udp, data_end);
-  }
-
   bpf_printk("destination interface index %d", bk->ifindex);
   
-  int action = bpf_redirect(bk->ifindex, 0);
+  int action = bpf_redirect_neigh(bk->ifindex, NULL, 0, 0);
 
   bpf_printk("redirect action: %d", action);
   
   return action;
 }
-
-// SEC("xdp")
-// int bpf_redirect_placeholder(struct xdp_md *ctx) {
-//     bpf_printk("received a packet on dest interface");
-//     return XDP_PASS;
-// }

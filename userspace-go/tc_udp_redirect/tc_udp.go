@@ -17,7 +17,7 @@ import (
 	"github.com/cilium/ebpf/link"
 )
 
-//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf ../bpf/xdp_udp.bpf.c -- -I../libbpf/src
+//go:generate go run github.com/cilium/ebpf/cmd/bpf2go -cc $BPF_CLANG -cflags $BPF_CFLAGS bpf ../../bpf/tc_udp.bpf.c -- -I../../libbpf/src
 func main() {
 	if len(os.Args) < 3 {
 		log.Fatalf("Please specify a main and destination network interface")
@@ -33,7 +33,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("lookup network iface %s: %s", ifaceName, err)
 	}
-	
+
 	var ve *ebpf.VerifierError
 	objs := bpfObjects{}
 	if err := loadBpfObjects(&objs, nil); err != nil {
