@@ -1,0 +1,2 @@
+[workspace]
+members = ["tc-udp-redirect", "tc-udp-redirect-common", "xtask"]

@@ -1,0 +1,3 @@
+{
+  "rust-analyzer.linkedProjects": ["Cargo.toml", "tc-udp-redirect-ebpf/Cargo.toml"]
+}
