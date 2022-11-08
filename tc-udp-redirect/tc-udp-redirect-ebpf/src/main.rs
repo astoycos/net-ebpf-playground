@@ -100,13 +100,10 @@ fn try_tc_udp_redirect(mut ctx: TcContext) -> Result<i32, i64> {
         return Ok(TC_ACT_PIPE);
     }
 
-    //let dst_ip = u32::from_be(ctx.load(ETH_HDR_LEN + offset_of!(iphdr, daddr))?);
-
     let ip_hdr: *mut iphdr = unsafe { ptr_at(&ctx, ETH_HDR_LEN) }?;
 
     let udp_header_offset = ETH_HDR_LEN + IP_HDR_LEN;
 
-    //let dst_port = u16::from_be(ctx.load(offset + offset_of!(udphdr, dest))?);
     let udp_hdr: *mut udphdr = unsafe { ptr_at(&ctx, udp_header_offset)? };
     
     let key = VipKey{
@@ -121,41 +118,13 @@ fn try_tc_udp_redirect(mut ctx: TcContext) -> Result<i32, i64> {
         u16::from_be(unsafe { (*udp_hdr).dest })
     );
 
-    // Load Src/Dest IPs, update IP cksum, Zero Out UDP Cksum
-    // unsafe { (*ip_hdr).check = 0; }
-    //let raw_backend_daddr = backend.daddr.to_be() as *mut _;
-    //let l3_sum = unsafe { bpf_csum_diff( (*ip_hdr).daddr as *mut u32,4, backend.daddr.to_be() as *mut u32, 4, 0) };
-    //unsafe { (*ip_hdr).daddr = backend.daddr.to_be(); }
- 
-    //ctx.l3_csum_replace(ETH_HDR_LEN + offset_of!(iphdr, check), 0, 100 as u64, 0);
-    
-
-    //ctx.l3_csum_replace(ETH_HDR_LEN + offset_of!(iphdr, check), unsafe { (*ip_hdr).daddr } as u64, backend.daddr.to_be() as u64, 4);
+    ctx.l3_csum_replace(ETH_HDR_LEN + offset_of!(iphdr, check), unsafe { (*ip_hdr).daddr } as u64, backend.daddr.to_be() as u64, 4);
     unsafe { (*ip_hdr).daddr = backend.daddr.to_be(); }
-    //unsafe { (*ip_hdr).check = 0; }
 
-    if (ctx.data() + ETH_HDR_LEN + size_of::<iphdr>()) > ctx.data_end() {
-        info!(&ctx, "Iphdr is out of bounds");
-        return Ok(TC_ACT_OK);
-    }
-    
-    let mut full_cksum = unsafe { bpf_csum_diff(0 as *mut _,0,ptr_at(&ctx, ETH_HDR_LEN)?, size_of::<iphdr>() as u32, 0)} as u64;
-    info!(&ctx, "full check = {:X}", full_cksum);
-
-    let folded_cksum = csum_fold_helper(full_cksum);
-    info!(&ctx, "folded check = {:X}", folded_cksum);
-
-    unsafe { (*ip_hdr).check = folded_cksum };
-    //unsafe { (*ip_hdr).check = bpf_csum_diff(0 as *mut _,0,ptr_at(&ctx, ETH_HDR_LEN)?, size_of::<iphdr>() as u32, 0) as u16; }
-    //ctx.l3_csum_replace(ip_hdr + offset_of(iphdr_daddr), 0, raw_iphdr as u64, size_of::<iphdr>() as u64);
-    // ip_hdr.check = bpf_csum_diff(0,0,raw_iphdr, size_of::<iphdr>() as u32,0);
     info!(&ctx, "Updated Iphdr check = {:X}", unsafe { (*ip_hdr).check });
-    // udp_hdr.dest = (backend.dport as u16).to_be();
     unsafe { (*udp_hdr).dest = (backend.dport as u16).to_be() };
+    // Kernel will allow UDP packets with unset checksums
     unsafe { (*udp_hdr).check = 0};
-    // // Reload iphdr and udphdr with updates
-    // ctx.store(ETH_HDR_LEN, &ip_hdr, 0);
-    // ctx.store(udp_header_offset, &udp_hdr, 0);
 
     Ok(TC_ACT_OK)
 }
