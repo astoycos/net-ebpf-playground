@@ -153,3 +153,15 @@ pub struct udphdr {
     pub len: __be16,
     pub check: __sum16,
 }
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct bpf_redir_neigh {
+    pub nh_family: __u32,
+    pub __bindgen_anon_1: bpf_redir_neigh__bindgen_ty_1,
+}
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union bpf_redir_neigh__bindgen_ty_1 {
+    pub ipv4_nh: __be32,
+    pub ipv6_nh: [__u32; 4usize],
+}

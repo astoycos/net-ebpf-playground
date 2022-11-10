@@ -1,6 +1,6 @@
 #![no_std]
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct Backend {
     pub saddr: u32,
@@ -15,7 +15,7 @@ pub struct Backend {
 #[cfg(feature = "user")]
 unsafe impl aya::Pod for Backend {}
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 #[repr(C)]
 pub struct VipKey { 
     pub vip: u32,

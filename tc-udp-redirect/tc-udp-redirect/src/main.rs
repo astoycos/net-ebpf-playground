@@ -42,27 +42,31 @@ async fn main() -> Result<(), anyhow::Error> {
     let _ = tc::qdisc_add_clsact(&opt.iface);
     let program: &mut SchedClassifier = bpf.program_mut("tc_udp_redirect").unwrap().try_into()?;
     program.load()?;
-    program.attach(&opt.iface, TcAttachType::Egress)?;
+    program.attach(&opt.iface, TcAttachType::Ingress)?;
 
     let mut backends: HashMap<_,VipKey,Backend> = 
         HashMap::try_from(bpf.map_mut("BACKENDS")?)?;
     
-    let block_addr: u32 = Ipv4Addr::new(192, 168, 10, 2).try_into()?;
+    let vip_addr: u32 = Ipv4Addr::new(10, 8, 125, 12).try_into()?;
 
     let key = VipKey{
-        vip: block_addr,
+        vip: vip_addr,
         port: 9875,
     };
 
+
+    
+
     let backend = Backend{ 
-        saddr: Ipv4Addr::new(192, 168, 10, 1).try_into()?,
+        saddr: vip_addr,
         daddr: Ipv4Addr::new(192, 168, 10, 2).try_into()?,
         dport: 9875,
         ifindex: 8,
         nocksum: 1,
     };
 
-    backends.insert(key, backend, 0);
+    backends.insert(key, backend, 0)?;
+    info!("Inserted Backend {:#?} with key {:#?}", backend, key);
 
     info!("Waiting for Ctrl-C...");
     signal::ctrl_c().await?;

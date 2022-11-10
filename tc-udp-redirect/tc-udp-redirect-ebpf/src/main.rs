@@ -8,7 +8,7 @@ use aya_bpf::{
     macros::{classifier, map},
     maps::{HashMap},
     programs::TcContext,
-    helpers::{bpf_csum_diff, bpf_l3_csum_replace}
+    helpers::{bpf_csum_diff, bpf_redirect_neigh}
 };
 use aya_log_ebpf::info;
 use memoffset::offset_of;
@@ -22,7 +22,7 @@ use tc_udp_redirect_common::{Backend, VipKey};
 #[allow(dead_code)]
 mod bindings;
 
-use bindings::{ethhdr, iphdr, udphdr};
+use bindings::{ethhdr, iphdr, udphdr, bpf_redir_neigh};
 
 const BUF_CAPACITY: usize = 256;
 
@@ -118,6 +118,8 @@ fn try_tc_udp_redirect(mut ctx: TcContext) -> Result<i32, i64> {
     );
 
     unsafe { (*ip_hdr).daddr = backend.daddr.to_be(); }
+    //unsafe { (*ip_hdr).saddr = backend.saddr.to_be(); }
+
 
     if (ctx.data() + ETH_HDR_LEN + size_of::<iphdr>()) > ctx.data_end() {
         info!(&ctx, "Iphdr is out of bounds");
@@ -127,14 +129,18 @@ fn try_tc_udp_redirect(mut ctx: TcContext) -> Result<i32, i64> {
     // Calculate l3 cksum
     unsafe { (*ip_hdr).check = 0 };
     let mut full_cksum = unsafe { bpf_csum_diff(0 as *mut u32,0 ,ip_hdr as *mut u32, size_of::<iphdr>() as u32, 0)} as u64;
-    unsafe { (*ip_hdr).check = csum_fold_helper(full_cksum) };
+    unsafe { (*ip_hdr).check = csum_fold_helper(full_cksum) };    
 
     info!(&ctx, "Updated Iphdr check = {:X}", unsafe { (*ip_hdr).check });
     unsafe { (*udp_hdr).dest = (backend.dport as u16).to_be() };
     // Kernel allows UDP packet with unset checksums
     unsafe { (*udp_hdr).check = 0};
 
-    Ok(TC_ACT_OK)
+    let action = unsafe{ bpf_redirect_neigh(backend.ifindex as u32,  mem::MaybeUninit::zeroed().assume_init(), 0, 0) };
+
+    info!(&ctx, "redirect action: {}", action);
+
+    Ok(action as i32)
 }
 
 #[panic_handler]
