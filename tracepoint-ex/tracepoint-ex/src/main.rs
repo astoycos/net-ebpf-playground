@@ -22,7 +22,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // load pinned maps from /sys/fs/bpf/my-program
     .map_pin_path("/sys/fs/bpf")
     // finally load the code
-    .load(include_bytes_aligned!("/home/astoycos/go/src/github.com/redhat-et/bpfd/examples/go-tracepoint-counter/bpf_bpfel.o"))?;
+    .load_file("/home/astoycos/go/src/github.com/redhat-et/bpfd/examples/go-tracepoint-counter/bpf_bpfel.o")?;
 
     let program: &mut TracePoint = bpf.program_mut("tracepoint_kill_recorder").unwrap().try_into()?;
         

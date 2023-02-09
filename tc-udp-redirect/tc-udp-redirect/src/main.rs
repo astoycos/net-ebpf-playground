@@ -2,7 +2,7 @@ use aya::{include_bytes_aligned, Bpf};
 use aya::maps::HashMap;
 use aya::programs::{tc, SchedClassifier, TcAttachType};
 use aya_log::BpfLogger;
-use std::net::{self, Ipv4Addr};
+use std::net::Ipv4Addr;
 use clap::Parser;
 use log::{info, warn};
 use tokio::signal;
@@ -44,6 +44,8 @@ async fn main() -> Result<(), anyhow::Error> {
     program.load()?;
     program.attach(&opt.iface, TcAttachType::Ingress)?;
 
+    //program.attach(&opt.iface, TcAttachType::Egress)?;
+
     let mut backends: HashMap<_,VipKey,Backend> = 
         HashMap::try_from(bpf.map_mut("BACKENDS")?)?;
     
@@ -55,14 +57,10 @@ async fn main() -> Result<(), anyhow::Error> {
     };
 
 
-    
-
-    let backend = Backend{ 
-        saddr: vip_addr,
-        daddr: Ipv4Addr::new(192, 168, 10, 2).try_into()?,
+    let backend = Backend{
+        daddr: Ipv4Addr::new(192, 168, 10, 5).try_into()?,
         dport: 9875,
         ifindex: 8,
-        nocksum: 1,
     };
 
     backends.insert(key, backend, 0)?;

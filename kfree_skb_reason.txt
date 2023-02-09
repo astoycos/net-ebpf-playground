@@ -1,0 +1,4 @@
+kprobe:kfree_skb_reason
+{
+    printf("Freeing SKB because: %d\n", arg1);
+}

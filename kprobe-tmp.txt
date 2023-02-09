@@ -1,0 +1,27 @@
+kretprobe:kfree_skb_reason
+{
+    printf("returned: %d\n", retval);
+}
+kprobe:kfree_skb_reason
+{
+    printf("Freeing SKB because: %d\n", arg1);
+}
+kprobe:ip_route_input_slow
+{
+    printf("Route lookup args: %d\n", arg1);
+}
+
+kretprobe:fib_validate_source
+{
+    printf("Validate source returned: %d\n", retval);
+}
+
+kretprobe:fib_table_lookup
+{
+    printf("Fib lookup returned: %d\n", retval);
+}
+
+kretprobe:skb_warn_if_lro
+{ 
+        printf("SKB_WARN_IF_LRO: %d\n", retval);
+}

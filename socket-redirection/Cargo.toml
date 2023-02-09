@@ -1,2 +1,5 @@
 [workspace]
 members = ["socket-redirection", "socket-redirection-common", "xtask"]
+
+[patch.crates-io]
+aya = { git = "https://github.com/redhat-et/aya", branch="main" }
