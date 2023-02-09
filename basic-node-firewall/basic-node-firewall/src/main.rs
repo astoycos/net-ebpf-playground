@@ -51,7 +51,16 @@ fn map_from_protocol(proto: u8) -> String {
 async fn main() -> Result<(), anyhow::Error> {
     //env_logger::init();
     tracing_subscriber::fmt::init();
-    let client = Client::try_default().await?;
+    //let client = Client::try_default().await?;
+
+    let client = match Client::try_default().await {
+        Ok(c) => c,
+        Err(e) => {
+            return Err(e.into())
+        }
+    };
+    
+
     let cm_api: Api<ConfigMap> = Api::default_namespaced(client.clone());
     let bpf_prog_api: Api<EbpfProgram> = Api::default_namespaced(client.clone());
     let mut prog_id: &'static str = "";
