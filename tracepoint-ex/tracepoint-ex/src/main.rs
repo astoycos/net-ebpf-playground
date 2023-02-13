@@ -16,7 +16,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // load pinned maps from /sys/fs/bpf/my-program
     .map_pin_path("/sys/fs/bpf")
     // finally load the code
-    .load(include_bytes_aligned!("/home/astoycos/go/src/github.com/redhat-et/bpfd/examples/go-tracepoint-counter/bpf_bpfel.o"))?;
+    .load_file("/home/astoycos/go/src/github.com/redhat-et/bpfd/examples/go-tracepoint-counter/bpf_bpfel.o")?;
     #[cfg(not(debug_assertions))]
     let mut bpf = BpfLoader::new()
     // load pinned maps from /sys/fs/bpf/my-program
@@ -28,6 +28,8 @@ async fn main() -> Result<(), anyhow::Error> {
         
     program.load()?;
     program.attach("syscalls", "sys_enter_kill")?;
+    program
+    .pin(format!("/sys/fs/bpf/trace_link"))?;
 
     info!("Waiting for Ctrl-C...");
     signal::ctrl_c().await?;
